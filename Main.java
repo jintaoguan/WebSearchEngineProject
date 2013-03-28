@@ -10,6 +10,8 @@ public class Main
 //		GZip.readTarFile("/home/jintaoguan/Desktop/1_data");
 //		GZip.unTargzFile( filename, destDir);
 //		System.out.println("ok");
+		EnvConfig ec = new EnvConfig();
+		ec.setMaxSpace( (int) java.lang.Runtime.getRuntime().maxMemory() );
 		System.out.println("maxMemory " + java.lang.Runtime.getRuntime().maxMemory());
 		//begin index with data folder
 		IndexGenerator index = new IndexGenerator("/home/jintaoguan/Desktop/NZ_data/");

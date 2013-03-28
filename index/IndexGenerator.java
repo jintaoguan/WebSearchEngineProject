@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 
 public class IndexGenerator {
 	//HTML pages files which will be cleaned
@@ -11,14 +12,24 @@ public class IndexGenerator {
 	//HTML pages files' according indexes
 	private ArrayList<File> originalIndexFiles;
 	//number of pages in each blocks
-	private final int MAX_NUMBER_OF_PAGES_PER_MERGESORT_BLOCK = 20000;
+//	private final int MAX_NUMBER_OF_PAGES_PER_MERGESORT_BLOCK = 20000;
 	//the directory of data
 	private String dataFolder;
+	
+//	index map
+//	private HashMap<String, HashMap>
+	private HashMap<String, Integer> wordMap;
+	private ArrayList<String> docIDList;
+	private int lastDocID;
+	
 	
 	public IndexGenerator(String dataFolder){
 		this.dataFolder = dataFolder;
 		originalDataFiles = new ArrayList<>();
 		originalIndexFiles = new ArrayList<>();
+		wordMap = new HashMap<String, Integer>();
+		docIDList = new ArrayList<String>();
+		lastDocID = 0;
 	}
 	
 	public void beginIndex(){
@@ -55,8 +66,11 @@ public class IndexGenerator {
 //			PageGenerator generatorOfPagesBlock = 
 //					new PageGenerator(originalDataFiles.get(i), originalIndexFiles.get(i));
 //			PageParser pp = new PageParser( originalDataFiles.get(i), originalIndexFiles.get(i) );
-			FileParser fp = new FileParser( originalDataFiles.get(i), originalIndexFiles.get(i) );
-			fp.parse();
+			FileParser fp = new FileParser( originalDataFiles.get(i), originalIndexFiles.get(i), docIDList );
+			HashMap<String, Integer> map = fp.parse();
+			wordMap = ToolKit.mergeMap( wordMap, map);
+			System.out.println( "Current Map Size : " + wordMap.size() );
+//			System.out.println( " keyword \"the\" : " + wordMap.get("bible") );
 //			while(generatorOfPagesBlock.parseNext()){
 //				tempIndexGenerator.clean(generatorOfPagesBlock.getPage(), generatorOfPagesBlock.getUrl());
 //				//persist each block when accumulate to a specific number of pages
