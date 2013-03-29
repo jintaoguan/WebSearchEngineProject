@@ -123,12 +123,15 @@ public class IndexGenerator {
 	private void WriteMap()
 	{
 		System.out.println("Writing map to file ...");
+//		System.out.println( this.docIDList.size() );
+
 		try {
 			File f = new File("/home/jintaoguan/Desktop/NZ_data/merge_file/merge1.txt");
 			if( !f.exists() ) f.createNewFile();
 			
 			FileWriter fw = new FileWriter(f);
 			StringBuffer sb = new StringBuffer();
+			
 			Iterator<Entry<String, IndexEntry>> iter = this.indexMap.entrySet().iterator(); 
 			while( iter.hasNext() ) { 
 				Map.Entry<String, IndexEntry> entry = (Map.Entry<String, IndexEntry>) iter.next(); 
@@ -138,21 +141,24 @@ public class IndexGenerator {
 				sb.append( key + " " );
 				sb.append( val.doc_num + " " );
 				
+				
 				Iterator<DocFreqPair> itr = val.indexList.iterator();
 			    while (itr.hasNext()) {
 			    	DocFreqPair pair = itr.next();
 			    	sb.append( pair.docID + " " );
 			    	sb.append( pair.freq + " " );
 			    }
-			    sb.append("\n");
 				fw.write(sb.toString());
+				fw.write("\n");
+				sb.delete( 0, sb.length() - 1 );
 			}
 			fw.close();
-			System.out.println("Writing map to file ...");
+			System.out.println("Writing completed.");
 		}catch(Exception e){
 			e.printStackTrace();
 			System.out.println("Writing Error.");
 		}
+	
 	}
 	
 //	private void mergeSort(){
