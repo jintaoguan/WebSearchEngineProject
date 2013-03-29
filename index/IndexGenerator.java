@@ -1,10 +1,13 @@
 package index;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 
 public class IndexGenerator {
@@ -19,11 +22,11 @@ public class IndexGenerator {
 	
 	//	index map
 //	private HashMap<String, HashMap>
-	private TreeMap<String, IndexEntry > indexMap;
+	private TreeMap<String, IndexEntry> indexMap;
 	private ArrayList<String> docIDList;
-	private int lastDocID;
+//	private int lastDocID;
 	
-	private final int MIN_SPACE = 20 * 1000 * 1000;
+//	private final int MIN_SPACE = 20 * 1000 * 1000;
 	
 	public IndexGenerator(String dataFolder){
 		this.dataFolder = dataFolder;
@@ -31,7 +34,7 @@ public class IndexGenerator {
 		originalIndexFiles = new ArrayList<>();
 		indexMap = new TreeMap<String, IndexEntry>();
 		docIDList = new ArrayList<String>();
-		lastDocID = 0;
+//		lastDocID = 0;
 	}
 	
 	public void beginIndex(){
@@ -60,7 +63,7 @@ public class IndexGenerator {
 //		TempIndexGenerator tempIndexGenerator = new TempIndexGenerator();
 //		int DataFilessize = this.originalDataFiles.size();
 		
-		for(int i = 0; i < 3; i++)
+		for(int i = 0; i < 1; i++)
 //		for(int i = 0; i < this.originalDataFiles.size(); i++)
 		{
 			System.out.println("clean page block " + i + "/" + originalDataFiles.size()
@@ -75,6 +78,8 @@ public class IndexGenerator {
 			
 			indexMap = ToolKit.mergeTreeMap( indexMap, map );
 			System.out.println( "Current Map Size : " + indexMap.size() );
+//			System.out.println("maxMemory " + java.lang.Runtime.getRuntime().maxMemory());
+			
 			
 //			System.out.println( " keyword \"the\" : " + wordMap.get("bible") );
 //			while(generatorOfPagesBlock.parseNext()){
@@ -87,6 +92,7 @@ public class IndexGenerator {
 //				}
 //			}
 		}
+		WriteMap();
 //		System.out.println("store last mergSort block " + tempIndexGenerator.getPersistenceCount());
 //		tempIndexGenerator.persist();
 	}
@@ -114,10 +120,47 @@ public class IndexGenerator {
 		}
 	}
 	
+	private void WriteMap()
+	{
+		System.out.println("Writing map to file ...");
+		try {
+			File f = new File("/home/jintaoguan/Desktop/NZ_data/merge_file/merge1.txt");
+			if( !f.exists() ) f.createNewFile();
+			
+			FileWriter fw = new FileWriter(f);
+			StringBuffer sb = new StringBuffer();
+			Iterator<Entry<String, IndexEntry>> iter = this.indexMap.entrySet().iterator(); 
+			while( iter.hasNext() ) { 
+				Map.Entry<String, IndexEntry> entry = (Map.Entry<String, IndexEntry>) iter.next(); 
+				String key = entry.getKey(); 
+				IndexEntry val = entry.getValue();
+				
+				sb.append( key + " " );
+				sb.append( val.doc_num + " " );
+				
+				Iterator<DocFreqPair> itr = val.indexList.iterator();
+			    while (itr.hasNext()) {
+			    	DocFreqPair pair = itr.next();
+			    	sb.append( pair.docID + " " );
+			    	sb.append( pair.freq + " " );
+			    }
+			    sb.append("\n");
+				fw.write(sb.toString());
+			}
+			fw.close();
+			System.out.println("Writing map to file ...");
+		}catch(Exception e){
+			e.printStackTrace();
+			System.out.println("Writing Error.");
+		}
+	}
+	
 //	private void mergeSort(){
 //		MergeSortMachine mergeSortMachine = new MergeSortMachine();
 //		mergeSortMachine.merge();
 //	}
+	
+	//for test
 	public int getNumOfDataFile()
 	{
 		return this.originalDataFiles.size();

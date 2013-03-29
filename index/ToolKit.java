@@ -56,13 +56,46 @@ public class ToolKit
 		return m1;
 	}
 	
-	public static TreeMap<String,IndexEntry> mergeTreeMap( TreeMap<String,IndexEntry> m1, TreeMap<String,IndexEntry> m2 )
+	//**************************************************************************************/
+	public static TreeMap<String,IndexEntry> mergeTreeMap
+		( TreeMap<String,IndexEntry> m1, TreeMap<String,IndexEntry> m2 )
 	{
-		Iterator<Entry<String, Integer>> iter = m2.entrySet().iterator(); 
-		while(iter.hasNext())
+		Iterator<Entry<String, IndexEntry>> iter = m2.entrySet().iterator(); 
+		//对于每一个 m2 中的元组<String, IndexEntry>
+		while( iter.hasNext() )
 		{
-			
+			Map.Entry<String, IndexEntry> m2record = (Map.Entry<String, IndexEntry>) iter.next();
+			String key = m2record.getKey();
+			IndexEntry m2entry = m2record.getValue();
+			//查看在 m1 中是否已经存在该元组的关键字 key
+			//如果已经存在，将m2该元组的 IndexEntry 每个对<dicID,freq> 加入 m1 的相应元组
+			if( m1.containsKey(key) )
+			{
+				IndexEntry m1entry = m1.get(key);
+				LinkedList<DocFreqPair> m2list = m2entry.indexList;
+				LinkedList<DocFreqPair> m1list = m1entry.indexList;
+				m1list.addAll(m2list);
+				m1entry.doc_num = m1list.size();
+			}
+			//如果不存在，将m2该元组加入 m1
+			else
+			{
+				m1.put(key, m2entry );
+			}
 		}
 		return m1;
+	}
+	
+	//  for test
+	public static void OutputMap( Map<String,Integer> map )
+	{
+		Iterator<Entry<String, Integer>> iter = map.entrySet().iterator();
+		while(iter.hasNext())
+		{
+			Map.Entry<String, Integer> entry = (Map.Entry<String, Integer>) iter.next();
+			String key = entry.getKey();
+			int value = entry.getValue();
+			System.out.println( "key: " + key + "  value: " + value );
+		}
 	}
 }

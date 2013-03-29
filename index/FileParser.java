@@ -38,6 +38,8 @@ public class FileParser
 		
 		this.m_docIDList = docIDList;
 		this.DataFileString = readGZFileToString(DataFile);
+		this.DataFileString = this.DataFileString.toLowerCase();
+		
 		String indexFileString = readGZFileToString(IndexFile);
 		this.IndexFileLines = indexFileString.split("\n");
 //		System.out.println( indexFileString );
@@ -49,6 +51,7 @@ public class FileParser
 	public TreeMap<String, IndexEntry> parse()
 	{
 		HashMap<String, Integer> pageMap = null;
+//		for( int i = 0; i < 3; ++i )
 		for( int i = 0; i < IndexFileLines.length; ++i )
 		{
 			String urlindex = IndexFileLines[i];
@@ -63,7 +66,8 @@ public class FileParser
 			PageParser pp = new PageParser( page_content, urlindex, m_docIDList );
 			pageMap = pp.parse();
 //			size = size + pageMap.size();
-//			System.out.println(pageMap.size());
+//			System.out.println( pageMap.size());
+//			ToolKit.OutputMap(pageMap);
 			
 			//***************************************************
 			fileMap = ToolKit.mergeMap( fileMap, pageMap, m_docIDList.size() );
