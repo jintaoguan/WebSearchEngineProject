@@ -10,7 +10,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
-public class IndexGenerator {
+public class IndexGenerator 
+{
 	//HTML pages files which will be cleaned
 	private ArrayList<File> originalDataFiles;
 	//HTML pages files' according indexes
@@ -28,7 +29,8 @@ public class IndexGenerator {
 	
 //	private final int MIN_SPACE = 20 * 1000 * 1000;
 	
-	public IndexGenerator(String dataFolder){
+	public IndexGenerator(String dataFolder)
+	{
 		this.dataFolder = dataFolder;
 		originalDataFiles = new ArrayList<>();
 		originalIndexFiles = new ArrayList<>();
@@ -37,7 +39,8 @@ public class IndexGenerator {
 //		lastDocID = 0;
 	}
 	
-	public void beginIndex(){
+	public void beginIndex()
+	{
 		Date begin = new Date();
 		
 		//get original data and index files
@@ -55,7 +58,8 @@ public class IndexGenerator {
 		System.out.println("used " + (end.getTime() - begin.getTime()) / 1000 + " seconds");
 	}
 	
-	private void generateMergeSortFiles(){
+	private void generateMergeSortFiles()
+	{
 		int beforePagesCount = 0;
 		System.out.println("clean page to mergsort pieces");
 
@@ -133,7 +137,8 @@ public class IndexGenerator {
 			StringBuffer sb = new StringBuffer();
 			
 			Iterator<Entry<String, IndexEntry>> iter = this.indexMap.entrySet().iterator(); 
-			while( iter.hasNext() ) { 
+			while( iter.hasNext() ) 
+			{ 
 				Map.Entry<String, IndexEntry> entry = (Map.Entry<String, IndexEntry>) iter.next(); 
 				String key = entry.getKey(); 
 				IndexEntry val = entry.getValue();
@@ -143,11 +148,12 @@ public class IndexGenerator {
 				
 				
 				Iterator<DocFreqPair> itr = val.indexList.iterator();
-			    while (itr.hasNext()) {
-			    	DocFreqPair pair = itr.next();
-			    	sb.append( pair.docID + " " );
-			    	sb.append( pair.freq + " " );
-			    }
+				while (itr.hasNext())
+				{
+					DocFreqPair pair = itr.next();
+					sb.append( pair.docID + " " );
+					sb.append( pair.freq + " " );
+				}
 				fw.write(sb.toString());
 				fw.write("\n");
 				sb.delete( 0, sb.length() - 1 );
