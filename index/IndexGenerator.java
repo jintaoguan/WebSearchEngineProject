@@ -85,13 +85,15 @@ public class IndexGenerator {
 //		tempIndexGenerator.persist();
 	}
 	
-	private void parseFilesName(){
+	private void parseFilesName()
+	{
 		System.out.println("parse files name");
 		File file = new File(this.dataFolder);
 		findFiles(file);
 	}
 	
-	private void findFiles(File thisFile){
+	private void findFiles(File thisFile)
+	{
 		if(!thisFile.isDirectory()){
 			if(thisFile.getName().contains("data")) 
 				this.originalDataFiles.add(thisFile);

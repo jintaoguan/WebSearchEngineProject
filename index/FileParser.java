@@ -44,23 +44,30 @@ public class FileParser
 //		System.out.println( IndexFileLines.length );
 	}
 	
+	// parse a file with 300 pages in it
 	public HashMap<String, Integer> parse()
 	{
-//		int size = 0;
 		HashMap<String, Integer> pageMap = null;
 		for( int i = 0; i < IndexFileLines.length; ++i )
 		{
 			String urlindex = IndexFileLines[i];
 			String[] strseg = urlindex.split(" ");
+			
 			int endOffset = CurrentOffset + Integer.parseInt(strseg[3]);
 			String page_content = DataFileString.substring( CurrentOffset, endOffset );
 			CurrentOffset = endOffset;
+			
 //			System.out.println( page_content );
+
 			PageParser pp = new PageParser( page_content, urlindex, m_docIDList );
 			pageMap = pp.parse();
 //			size = size + pageMap.size();
 //			System.out.println(pageMap.size());
+			
+			//***************************************************
 			fileMap = ToolKit.mergeMap( fileMap, pageMap );
+			
+			//***************************************************
 		}
 //		System.out.println( size );
 		return fileMap;
