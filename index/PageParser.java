@@ -31,8 +31,6 @@ public class PageParser
 	
 	
 	private String[] parseWordsFromPage(String page){
-		page.replace(",", " ");
-		page.replace(".", " ");
 		Document doc = Jsoup.parse(page);
 		String[] words = doc.text().split(" ");
 		// clean the non-letter words

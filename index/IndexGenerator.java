@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.TreeMap;
 
 public class IndexGenerator {
 	//HTML pages files which will be cleaned
@@ -16,18 +17,19 @@ public class IndexGenerator {
 	//the directory of data
 	private String dataFolder;
 	
-//	index map
+	//	index map
 //	private HashMap<String, HashMap>
-	private HashMap<String, Integer> wordMap;
+	private TreeMap<String, IndexEntry > indexMap;
 	private ArrayList<String> docIDList;
 	private int lastDocID;
 	
+	private final int MIN_SPACE = 20 * 1000 * 1000;
 	
 	public IndexGenerator(String dataFolder){
 		this.dataFolder = dataFolder;
 		originalDataFiles = new ArrayList<>();
 		originalIndexFiles = new ArrayList<>();
-		wordMap = new HashMap<String, Integer>();
+		indexMap = new TreeMap<String, IndexEntry>();
 		docIDList = new ArrayList<String>();
 		lastDocID = 0;
 	}
@@ -56,8 +58,10 @@ public class IndexGenerator {
 
 		//blocks generator
 //		TempIndexGenerator tempIndexGenerator = new TempIndexGenerator();
-//		int DataFilessize = this.originalDataFiles.size(); 
-		for(int i = 0; i < this.originalDataFiles.size(); i++)
+//		int DataFilessize = this.originalDataFiles.size();
+		
+		for(int i = 0; i < 3; i++)
+//		for(int i = 0; i < this.originalDataFiles.size(); i++)
 		{
 			System.out.println("clean page block " + i + "/" + originalDataFiles.size()
 //					+ " memory pages: " + tempIndexGenerator.getPageCount()
@@ -67,9 +71,11 @@ public class IndexGenerator {
 //					new PageGenerator(originalDataFiles.get(i), originalIndexFiles.get(i));
 //			PageParser pp = new PageParser( originalDataFiles.get(i), originalIndexFiles.get(i) );
 			FileParser fp = new FileParser( originalDataFiles.get(i), originalIndexFiles.get(i), docIDList );
-			HashMap<String, Integer> map = fp.parse();
-			wordMap = ToolKit.mergeMap( wordMap, map);
-			System.out.println( "Current Map Size : " + wordMap.size() );
+			TreeMap<String,IndexEntry> map = fp.parse();
+			
+			indexMap = ToolKit.mergeTreeMap( indexMap, map );
+			System.out.println( "Current Map Size : " + indexMap.size() );
+			
 //			System.out.println( " keyword \"the\" : " + wordMap.get("bible") );
 //			while(generatorOfPagesBlock.parseNext()){
 //				tempIndexGenerator.clean(generatorOfPagesBlock.getPage(), generatorOfPagesBlock.getUrl());

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
 
 
@@ -22,7 +23,7 @@ public class FileParser
 	
 	private static final int BUFFERSIZE = 20*1000*1000;
 	
-	private HashMap<String, Integer> fileMap;
+	private TreeMap<String, IndexEntry> fileMap;
 	
 	public FileParser( File data_file, File index_file, ArrayList<String> docIDList )
 	{
@@ -33,7 +34,7 @@ public class FileParser
 		this.IndexFile = index_file;
 		this.NumOfCurrentPage = 0;
 		this.CurrentOffset = 0;
-		this.fileMap = new HashMap<String, Integer>();
+		this.fileMap = new TreeMap<String, IndexEntry>();
 		
 		this.m_docIDList = docIDList;
 		this.DataFileString = readGZFileToString(DataFile);
@@ -45,7 +46,7 @@ public class FileParser
 	}
 	
 	// parse a file with 300 pages in it
-	public HashMap<String, Integer> parse()
+	public TreeMap<String, IndexEntry> parse()
 	{
 		HashMap<String, Integer> pageMap = null;
 		for( int i = 0; i < IndexFileLines.length; ++i )
@@ -65,7 +66,8 @@ public class FileParser
 //			System.out.println(pageMap.size());
 			
 			//***************************************************
-			fileMap = ToolKit.mergeMap( fileMap, pageMap );
+			fileMap = ToolKit.mergeMap( fileMap, pageMap, m_docIDList.size() );
+//			System.out.println( "Current Map Size : " + fileMap.size() );
 			
 			//***************************************************
 		}
