@@ -31,6 +31,7 @@ public class PageParser
 	
 	
 	private String[] parseWordsFromPage(String page){
+//		page = page.toLowerCase();
 		Document doc = Jsoup.parse(page);
 		String[] words = doc.text().split(" ");
 		// clean the non-letter words
@@ -54,7 +55,14 @@ public class PageParser
 	{
 		for( int i = 0; i < word.length(); ++i )
 		{
-			if( !Character.isLetter(word.charAt(i)) && !Character.isDigit(word.charAt(i)) )
+			int asc = (int)(word.charAt(i));
+			if( asc >= 97 && asc <= 122 )
+				continue;
+			else if( asc >= 65 && asc <= 90 )
+				continue;
+			else if( asc >= 48 && asc <= 57 )
+				continue;
+			else 
 				return false;
 		}
 		return true;

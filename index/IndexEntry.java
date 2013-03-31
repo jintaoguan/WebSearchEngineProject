@@ -1,6 +1,7 @@
 package index;
 
 import java.util.LinkedList;
+import index.DocFreqPair;
 
 public class IndexEntry
 {
@@ -22,10 +23,4 @@ public class IndexEntry
 		return this.doc_num;
 	}
 	
-}
-
-class DocFreqPair
-{
-	public int docID;
-	public int freq;
 }

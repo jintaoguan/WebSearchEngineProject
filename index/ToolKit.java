@@ -1,5 +1,10 @@
 package index;
 
+
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -37,8 +42,10 @@ public class ToolKit
 			int value = (int) entry.getValue();
 			
 			DocFreqPair pair = new DocFreqPair();
-			pair.docID = docID;
-			pair.freq = value;
+			pair.setDocID(docID);
+//			pair.docID = docID;
+			pair.setFreq(value);
+//			pair.freq = value;
 			if( m1.containsKey(key) )
 			{
 				IndexEntry treeMapEntry = m1.get(key);
@@ -61,14 +68,11 @@ public class ToolKit
 		( TreeMap<String,IndexEntry> m1, TreeMap<String,IndexEntry> m2 )
 	{
 		Iterator<Entry<String, IndexEntry>> iter = m2.entrySet().iterator(); 
-		//对于每一个 m2 中的元组<String, IndexEntry>
 		while( iter.hasNext() )
 		{
 			Map.Entry<String, IndexEntry> m2record = (Map.Entry<String, IndexEntry>) iter.next();
 			String key = m2record.getKey();
 			IndexEntry m2entry = m2record.getValue();
-			//查看在 m1 中是否已经存在该元组的关键字 key
-			//如果已经存在，将m2该元组的 IndexEntry 每个对<dicID,freq> 加入 m1 的相应元组
 			if( m1.containsKey(key) )
 			{
 				IndexEntry m1entry = m1.get(key);
@@ -77,7 +81,6 @@ public class ToolKit
 				m1list.addAll(m2list);
 				m1entry.doc_num = m1list.size();
 			}
-			//如果不存在，将m2该元组加入 m1
 			else
 			{
 				m1.put(key, m2entry );
@@ -96,6 +99,18 @@ public class ToolKit
 			String key = entry.getKey();
 			int value = entry.getValue();
 			System.out.println( "key: " + key + "  value: " + value );
+		}
+	}
+	
+	public static void WriteStrToFile( String content, String path )
+	{
+		File file = new File(path);
+		try {
+			@SuppressWarnings("resource")
+			FileWriter writer = new FileWriter( file );
+			writer.write(content);
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 }

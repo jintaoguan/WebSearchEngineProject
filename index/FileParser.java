@@ -1,5 +1,6 @@
 package index;
 
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
@@ -17,6 +18,8 @@ public class FileParser
 	public String DataFileString;
 	public String[] IndexFileLines;
 	
+	private int m_lastDocID;
+	
 	private ArrayList<String> m_docIDList;
 	public int CurrentOffset;
 	
@@ -25,7 +28,7 @@ public class FileParser
 	
 	private TreeMap<String, IndexEntry> fileMap;
 	
-	public FileParser( File data_file, File index_file, ArrayList<String> docIDList )
+	public FileParser( File data_file, File index_file, ArrayList<String> docIDList, int lastDocID )
 	{
 		System.out.println( "Process Data File : " + data_file.getAbsolutePath() + " ..." );
 		System.out.println( "Process Index File : " + index_file.getAbsolutePath() + " ..." );
@@ -42,6 +45,7 @@ public class FileParser
 		
 		String indexFileString = readGZFileToString(IndexFile);
 		this.IndexFileLines = indexFileString.split("\n");
+		this.m_lastDocID = lastDocID;
 //		System.out.println( indexFileString );
 //		System.out.println( DataFileString.length() );
 //		System.out.println( IndexFileLines.length );
@@ -70,7 +74,7 @@ public class FileParser
 //			ToolKit.OutputMap(pageMap);
 			
 			//***************************************************
-			fileMap = ToolKit.mergeMap( fileMap, pageMap, m_docIDList.size() );
+			fileMap = ToolKit.mergeMap( fileMap, pageMap, m_lastDocID + m_docIDList.size() );
 //			System.out.println( "Current Map Size : " + fileMap.size() );
 			
 			//***************************************************
