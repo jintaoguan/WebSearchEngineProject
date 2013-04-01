@@ -55,7 +55,7 @@ public class IndexGenerator
 		this.lastDocID = 0;
 		
 		this.wordOffsetFile = new File( "D:/Work/NZ_data/index/WordOffset.txt" );
-		this.indexFile = new File( "D:/Work/NZ_data/index/index.txt" );
+		this.indexFile = new File( "D:/Work/NZ_data/index/final_idx.txt" );
 		
 	}
 	
@@ -69,13 +69,13 @@ public class IndexGenerator
 		System.out.println( "Find "+ this.getNumOfIndexFile() +" Index Files." );
 		
 		//generate intermediate blocks
-		generateMergeSortFiles();
+//		generateMergeSortFiles();
 		
 		//merge sort all of the blocks
 //		mergeSort();
 		
 		//generate index word offset file
-//		generateWordOffsetFile();
+		generateWordOffsetFile();
 		
 		Date end = new Date();
 		System.out.println("used " + (end.getTime() - begin.getTime()) / 1000 + " seconds");
@@ -171,6 +171,7 @@ public class IndexGenerator
 			File f = new File( outputFileName );
 			
 			if( !f.exists() ) f.createNewFile();
+			//add this merge file to mergeFiles arraylist
 			this.mergeFiles.add(f);
 			
 			FileWriter fw = new FileWriter(f);
@@ -227,9 +228,10 @@ public class IndexGenerator
 		}
 	}
 	
-	private void mergeSort(){
-//		MergeSortMachine mergeSortMachine = new MergeSortMachine();
-//		mergeSortMachine.merge();
+	private void mergeSort()
+	{
+		MergeSortMachine mergeSortMachine = new MergeSortMachine();
+		mergeSortMachine.merge();
 	}
 	
 	
@@ -251,7 +253,7 @@ public class IndexGenerator
 			StringBuffer sb = new StringBuffer();
  			
 			String indexLine = null;
-			int CurrentOffset = 1;
+			long CurrentOffset = 1;
 			while( (indexLine = br.readLine()) != null ) 
 			{
 				String word = getKeyWordFromIndexLine( indexLine );

@@ -49,7 +49,7 @@ public class Query
 		String query_str = scanner.nextLine();
 		
 		wordOffsetFile = new File( "D:/Work/NZ_data/index/WordOffset.txt" );
-		indexFile = new File( "D:/Work/NZ_data/index/index.txt" );
+		indexFile = new File( "D:/Work/NZ_data/index/final_idx.txt" );
 		
 		//get key words from input
 		this.keyWords = getKeyWordsFromQuery( query_str );
@@ -152,6 +152,7 @@ public class Query
 	
 	private ArrayList<String> getKeyWordsFromQuery( String query_str )
 	{
+		query_str = query_str.toLowerCase();
 		String[] words = query_str.split(" ");
 		for( int i = 0; i < words.length; ++i )
 			this.keyWords.add( words[i] );
