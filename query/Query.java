@@ -8,11 +8,14 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Scanner;
+import java.util.PriorityQueue;
 
+import index.HeapIndexNode;
 import index.IndexEntry;
 import index.DocFreqPair;
 
@@ -22,13 +25,19 @@ public class Query
 	private ArrayList<String> indexLines;
 	private LinkedList<Integer> docIDs;
 	
+	private PriorityQueue<HeapBM25Node> heap;
+	
 	private String wordOffset;
 	private File wordOffsetFile;
 	private File indexFile;
 	
 	private Snippet snpt;
 	
+	private final int TOP_K_PAGE = 10;
+	
 	private final int AVERAGE_PAGE_LENGTH = 30000;
+	private final int TOTAL_PAGE_NUM = 2635851;
+	
 	
 	
 	public static void main( String[] argv )
@@ -39,10 +48,11 @@ public class Query
 //		String query_str = scanner.nextLine();
 //		System.out.print( query_str );
 		Query query = new Query();
-//		while( true )
-//		{
+		while( true )
+		{
+			query.inputKeyWords();
 			query.searchKeyWord();
-//		}
+		}
 	}
 	
 	public Query()
@@ -53,22 +63,33 @@ public class Query
 		
 		this.snpt = new Snippet();
 		
+		wordOffsetFile = new File( "D:/Work/NZ_data/index/WordOffset.txt" );
+		indexFile = new File( "D:/Work/NZ_data/index/final_idx.txt" );
+		
+		//generate heap
+		generateHeap();
+		
+		//load the word offset file into main memory
+		this.loadWordOffset();
+		
+	}
+	
+	//clear the buffer of query
+	private void clear()
+	{
+		this.keyWords.clear();
+		this.indexLines.clear();
+	}
+	
+	public void inputKeyWords()
+	{
 		//input
 		@SuppressWarnings("resource")
 		Scanner scanner = new Scanner( System.in );
 		System.out.println("Search: ");
 		String query_str = scanner.nextLine();
-		
-		wordOffsetFile = new File( "D:/Work/NZ_data/index/WordOffset.txt" );
-		indexFile = new File( "D:/Work/NZ_data/index/final_idx.txt" );
-		
 		//get key words from input
 		this.keyWords = getKeyWordsFromQuery( query_str );
-		
-		//load the word offset file into main memory
-		this.loadWordOffset();
-		
-		
 	}
 	
 	public void searchKeyWord()
@@ -80,36 +101,108 @@ public class Query
 		Date before = new Date();
 		QueryNode[] entrys = convertIndexLineToQueryNode();
 		this.docIDs = getAllDocIDs( entrys );
+
+		for( int i = 0; i < this.docIDs.size(); ++i )
+		{
+			System.out.print( (i+1) + ": " + this.docIDs.get(i) + " " );
+			System.out.print( this.snpt.getURLByDocID( this.docIDs.get(i) ) + '\n' );
+			
+		}
+		
 		Date after = new Date();
 		System.out.println("used " + (after.getTime() - before.getTime()) + " miliseconds");
 //		showDocID( this.docIDs );
 		System.out.println( "\nHave found " + this.docIDs.size() +" pages." );
 		this.snpt.outputSnippet( this.docIDs );
+		this.snpt.clear();
 	}
 	
-//	private ArrayList<String> setIndexLines()
-//	{
-//		String a  = "a 10 1 1 2 1 3 1 4 1 5 1 6 1 7 1 8 1 9 1 10 1";
-//		String aa = "aa 3 4 1 7 2 9 1 ";
-//		String b =  "b 3 5 1 7 1 10 1";  // 7 is the common doc id
-//		this.indexLines.add(a);
-//		this.indexLines.add(aa);
-//		this.indexLines.add(b);
-//		return this.indexLines;
-//	}
-	
-	//the most important step of searching
+	//***************************************************************************
+	//                   the most important step of searching
+	//***************************************************************************
 	private LinkedList<Integer> getAllDocIDs( QueryNode[] entrys )
 	{
+		int cnt = 0;
 		while( entrys[0].hasNext() )
 		{
 			int doc_id = entrys[0].getCurDocID();
 			boolean has = haveCommonDocID( entrys, doc_id, 1, entrys.length  );
+			//get BM25 then it into heap  
 			if( has == true )
-				this.docIDs.add( entrys[0].getCurDocID() );
+			{
+				cnt++;
+				double bm25_score = calculateBM25( entrys, doc_id ); 
+//				this.docIDs.add( entrys[0].getCurDocID() );
+				HeapBM25Node node = new HeapBM25Node( doc_id, bm25_score );
+				
+				if( this.heap.size() < TOP_K_PAGE )
+					this.heap.add( node );
+				else if( node.getBM25() > this.heap.peek().getBM25() )
+				{
+					this.heap.poll();
+					this.heap.add( node );
+				}
+			}
 			entrys[0].moveToNext();
 		}
+		while( !this.heap.isEmpty() )
+		{
+			int doc_id = this.heap.poll().getDocID();
+			this.docIDs.addLast(doc_id);
+		}
+		System.out.println("Have found " + cnt + " Pages.");
 		return this.docIDs;
+	}
+	
+	//***************************************************************************
+	//                   calculate the bm25 score of this page
+	//***************************************************************************
+	private double calculateBM25( QueryNode[] entrys, int doc_id )
+	{
+		double bm25 = 0.0;
+		
+		for( int i = 0; i < entrys.length; ++i )
+		{
+			double w = calculateW( entrys, doc_id, i );
+			double r = calculateR( entrys, doc_id, i );
+			bm25 += w * r;
+		}
+		return bm25;
+	}
+	private double calculateW( QueryNode[] entrys, int doc_id, int i )
+	{
+		double w = 0.0;
+		double tmp1 = ( this.TOTAL_PAGE_NUM - entrys[i].entry.doc_num + 0.5 );
+		double tmp2 = ( entrys[i].entry.doc_num + 0.5 );
+		w = Math.log10( tmp1 / tmp2 );
+		return w;
+	}
+	private double calculateR( QueryNode[] entrys, int doc_id, int i )
+	{
+		double k = calculateK( entrys, doc_id, i );
+		double tmp1 = entrys[i].getCurFreq() * ( 2.0 + 1.0 );
+		double tmp2 = entrys[i].getCurFreq() + k;
+		return ( tmp1 / tmp2 );
+	}
+	private double calculateK( QueryNode[] entrys, int doc_id, int i )
+	{
+		double ratio = ( this.snpt.getDocLengthByDocID(doc_id) / this.AVERAGE_PAGE_LENGTH );
+		double k = 2.0 * ( 1 - 0.75 + 0.75 * ratio );
+		return k;
+	}
+	
+	private void generateHeap(){
+		this.heap = new PriorityQueue<HeapBM25Node>( this.TOP_K_PAGE, new Comparator<HeapBM25Node>(){
+			//compare word alphabetic order and first docID
+			public int compare( HeapBM25Node a, HeapBM25Node b )
+			{
+				double bm25A = a.getBM25();
+				double bm25B = b.getBM25();
+				
+				if( bm25A > bm25B ) return 1;
+				else return -1;				
+			}
+		});
 	}
 	
 	//search for the common docID using recursion
@@ -210,7 +303,7 @@ public class Query
 			int wordBeginPos = this.wordOffset.indexOf( keyword ) + 1;
 			
 			String offsetLine = getOffsetLine( wordBeginPos );
-			System.out.println(offsetLine);
+//			System.out.println(offsetLine);
 			
 			//get the word offset in index file
 			long wordOffset = getWordOffsetInIndex( offsetLine );
@@ -298,4 +391,27 @@ public class Query
 			}
 		}
 	}
+}
+
+
+class HeapBM25Node
+{
+	private double bm25;
+	private int doc_id;
+	
+	public HeapBM25Node( int doc_id, double bm25 )
+	{
+		this.doc_id = doc_id;
+		this.bm25 = bm25;
+	}
+	
+	public double getBM25()
+	{
+		return this.bm25;
+	}
+	public int getDocID()
+	{
+		return this.doc_id;
+	}
+	
 }

@@ -37,6 +37,11 @@ public class Snippet
 //		System.out.println( this.m_targetFile.getAbsolutePath() );
 	}
 	
+	public void clear()
+	{
+		
+	}
+	
 	private void loadDocIDFile()
 	{
 		FileReader reader = null;
@@ -71,8 +76,8 @@ public class Snippet
 		{
 			int doc_id = DocIDList.get(i) - 1;
 			PageInfo info = this.m_DocIDList.get( doc_id );
-			System.out.println( DocIDList.get(i) );
-			System.out.println( info.getPageURL() );
+//			System.out.println( DocIDList.get(i) );
+//			System.out.println( info.getPageURL() );
 			
 			getPageSnippet( doc_id );
 		}
@@ -149,5 +154,17 @@ public class Snippet
 			e.printStackTrace();
 		}
 		return sb.toString();
+	}
+	
+	public int getDocLengthByDocID( int doc_id )
+	{
+		PageInfo info = this.m_DocIDList.get( doc_id - 1 );
+		return Integer.parseInt( info.getPageLength() );
+	}
+	
+	public String getURLByDocID( int doc_id )
+	{
+		PageInfo info = this.m_DocIDList.get( doc_id - 1 );
+		return info.getPageURL();
 	}
 }
