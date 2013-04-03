@@ -53,7 +53,7 @@ public class MergeSortMachine {
 		
 		findAllMergeBlocks( folder );
 		
-		
+		System.out.println( this.mergeBlocks.size() );
 		
 		//generate heap using intermediate blocks
 		generateHeap();
@@ -104,7 +104,7 @@ public class MergeSortMachine {
 		//initialize the heap
 		for( int i = 0; i < this.mergeBlockReaders.size(); ++i )
 		{
-//			System.out.println( this.mergeBlocks.get(i).getAbsolutePath() );
+			System.out.println( this.mergeBlocks.get(i).getAbsolutePath() );
 			String str = null;
 			try {
 				str = this.mergeBlockReaders.get(i).readLine();
@@ -181,14 +181,16 @@ public class MergeSortMachine {
 			
 			if( this.buffer.length() > this.BUFFERSIZE )
 			{
+//				double ratio = Double.longBitsToDouble( (hasProcessed / this.mergeFileSize) );
+				
 				writeBufferToFile();
 				hasProcessed += this.BUFFERSIZE;
 				this.buffer.delete( 0 , this.buffer.length() - 1 );
 				this.bufferNode.clear();
 //				rate = (int)(hasProcessed / this.mergeFileSize);
-				System.out.println( "Have processed " + (hasProcessed/1000000) + "/" 
-							+ (this.mergeFileSize/1000000) );
-				if( hasProcessed/1000000 > 4000 )
+				System.out.println( "Have processed " + (hasProcessed/1000000) + "/" + (this.mergeFileSize / 1000000) );
+				
+				if( rate > 5000 ) 
 					break;
 			}
 			

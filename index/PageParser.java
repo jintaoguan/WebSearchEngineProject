@@ -1,5 +1,6 @@
 package index;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import org.jsoup.Jsoup;
@@ -7,25 +8,40 @@ import org.jsoup.nodes.Document;
 
 public class PageParser
 {
-	public String PageContent;
-	public String m_urlindex;
-	private ArrayList<String> m_docIDList;
+	private File m_DataFile;
 	
-	public PageParser( String content, String urlindex, ArrayList<String> docIDList )
+	public String m_PageContent;
+	public String m_urlindex;
+	private ArrayList<PageInfo> m_docIDList;
+	
+	private int m_CurrentOffset;
+	
+	private String m_DataFileID;
+	
+	public PageParser( String content, String urlindex, int Offset, File data_file, ArrayList<PageInfo> docIDList )
 	{
-		this.PageContent = content;
+		this.m_PageContent = content;
 		this.m_docIDList = docIDList;
-		this.m_urlindex = urlindex; 
+		this.m_urlindex = urlindex;
+		this.m_DataFile = data_file;
+		this.m_CurrentOffset = Offset;
+		this.m_DataFileID = getDataFileID( data_file.getName() );
 	}
 	
 	public HashMap<String, Integer> parse()
 	{
-		String[] words = parseWordsFromPage( PageContent );
+		String[] words = parseWordsFromPage( m_PageContent );
 //		System.out.println("before count words:" + words.length);
 		HashMap<String, Integer> map = CountWords( words );
 //		System.out.println("after count words:" + map.size());
-		String[] idxseg = m_urlindex.split(" ");
-		m_docIDList.add(idxseg[0]);
+//		String[] idxseg = m_urlindex.split(" ");
+		
+		PageInfo info = new PageInfo( m_urlindex );
+		info.setPageOffset( this.m_CurrentOffset );
+		info.setFileID( this.m_DataFileID);
+		info.setPageLength( this.m_PageContent.length() );
+
+		m_docIDList.add(info);
 		return map;
 	}
 	
@@ -49,6 +65,17 @@ public class PageParser
 				map.put(words[i], 1);
 		}
 		return map;
+	}
+	
+	private String getDataFileID( String filename )
+	{
+		StringBuffer sb = new StringBuffer();
+		for( int i = 0; i < filename.length() - 1; ++i )
+		{
+			if( filename.charAt(i) >= '0' && filename.charAt(i) <= '9' )
+				sb.append( filename.charAt(i) );
+		}
+		return sb.toString();
 	}
 	
 	private boolean isLegalWord( String word )

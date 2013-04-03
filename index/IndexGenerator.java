@@ -34,27 +34,39 @@ public class IndexGenerator
 	
 	//the most important thing, index map, need to be cleaned after flushing
 	private TreeMap<String, IndexEntry> indexMap;
+	
 	//list of URL address, need to be cleaned after flushing
-	private ArrayList<String> docIDList;
+	private ArrayList<PageInfo> docIDList;
+	
 	//50000
 	private final int MAX_PAGES_PER_MERGESORT_BLOCK = 50000;
+	
+	private final int BUFFER_SIZE = 10 * 1000 * 1000;
 
 	private File wordOffsetFile;
 	private File indexFile;
 	
 	public IndexGenerator( String dataFolder )
 	{
+		//working folder setting
 		this.dataFolder = dataFolder;
+		//data files list
 		this.originalDataFiles = new ArrayList<>();
+		//index files list
 		this.originalIndexFiles = new ArrayList<>();
+		//index map< String, IndexEntry >
 		this.indexMap = new TreeMap<String, IndexEntry>();
-		this.docIDList = new ArrayList<String>();
+		//docIDList is an array that stores url in it 
+		this.docIDList = new ArrayList<PageInfo>();
+		//merge block files
 		this.mergeFiles = new ArrayList<File>();
-
+		//2.5 million url
 		this.docIDFile = new File("D:/Work/NZ_data/docID/docID.txt");
+
 		this.lastDocID = 0;
-		
+		//offset of key word in indexing file
 		this.wordOffsetFile = new File( "D:/Work/NZ_data/index/WordOffset.txt" );
+		//indexing file
 		this.indexFile = new File( "D:/Work/NZ_data/index/final_idx.txt" );
 		
 	}
@@ -69,30 +81,25 @@ public class IndexGenerator
 		System.out.println( "Find "+ this.getNumOfIndexFile() +" Index Files." );
 		
 		//generate intermediate blocks
-//		generateMergeSortFiles();
+		generateMergeSortFiles();
 		
 		//merge sort all of the blocks
 //		mergeSort();
 		
 		//generate index word offset file
-		generateWordOffsetFile();
+//		generateWordOffsetFile();
 		
 		Date end = new Date();
 		System.out.println("used " + (end.getTime() - begin.getTime()) / 1000 + " seconds");
 	}
 	
+	//generate merge blocks from data set
 	private void generateMergeSortFiles()
 	{
 		System.out.println("clean page to mergsort pieces");
-
 		for(int i = 0; i < this.originalDataFiles.size(); i++)
 		{
-			System.out.println("clean page block " + i + "/" + originalDataFiles.size() );
-//					+ " memory pages: " + tempIndexGenerator.getPageCount()
-//			
-//			PageGenerator generatorOfPagesBlock = 
-//					new PageGenerator(originalDataFiles.get(i), originalIndexFiles.get(i));
-//			PageParser pp = new PageParser( originalDataFiles.get(i), originalIndexFiles.get(i) );
+			System.out.println("Processing " + i + "/" + originalDataFiles.size() + " Data File" );
 			
 			//File Parser
 			FileParser fp = new FileParser( originalDataFiles.get(i), originalIndexFiles.get(i), docIDList, lastDocID );
@@ -105,24 +112,16 @@ public class IndexGenerator
 			
 			if( docIDList.size() >  MAX_PAGES_PER_MERGESORT_BLOCK )
 				flushMergeFile();
-			
-//			System.out.println( " keyword \"the\" : " + wordMap.get("bible") );
-			
-//			while(generatorOfPagesBlock.parseNext()){
-//				tempIndexGenerator.clean(generatorOfPagesBlock.getPage(), generatorOfPagesBlock.getUrl());
-//				//persist each block when accumulate to a specific number of pages
-//				if(tempIndexGenerator.getPageCount() >= MAX_NUMBER_OF_PAGES_PER_MERGESORT_BLOCK){
-//					System.out.println("store mergSort block " + tempIndexGenerator.getPersistenceCount());
-//					beforePagesCount += tempIndexGenerator.getPageCount();
-//					tempIndexGenerator.persist();
-//				}
-//			}
+		
 		}
 		flushMergeFile();
+		
+		//Have processed all of the data file
 		System.out.println("******************************************************");
 		System.out.println("     Store last mergeSort block ");
 		System.out.println("     Total mergeSort blocks: " + this.mergeFiles.size() );
 		System.out.println("******************************************************");
+		
 	}
 	
 	private void parseFilesName()
@@ -207,17 +206,18 @@ public class IndexGenerator
 		}
 	}
 	
+	//write url and info into DocID file
 	private void WriteDocIDListToFile()
 	{
 		this.lastDocID = this.lastDocID + this.docIDList.size();
 		try {
 			FileWriter fw = new FileWriter( this.docIDFile, true );
-			Iterator<String> iter = docIDList.iterator();
+			Iterator<PageInfo> iter = docIDList.iterator();
 			StringBuffer sb = new StringBuffer();
 			while( iter.hasNext() )
 			{
-				String url = iter.next();
-				sb.append( url );
+				PageInfo info = iter.next();
+				sb.append( info.pageInfoToString() );
 				sb.append("\n");
 			}
 			fw.append(sb.toString());
@@ -259,8 +259,12 @@ public class IndexGenerator
 				String word = getKeyWordFromIndexLine( indexLine );
 				sb.append( word + " " + CurrentOffset + " " + indexLine.length() + '\n' );
 				CurrentOffset = CurrentOffset + indexLine.length() + 1;
-				if( sb.length() > 5 )
+				if( sb.length() > this.BUFFER_SIZE )
+				{
+					System.out.println("Write word offset to file...");
 					flushOffsetFile( writer, sb );
+					System.out.println("Write complete.");
+				}
 			}
 			
 			flushOffsetFile( writer, sb );
@@ -313,7 +317,7 @@ public class IndexGenerator
 		return sb.toString();
 	}
 	
-	//for test
+	//for test use
 	public int getNumOfDataFile()
 	{
 		return this.originalDataFiles.size();

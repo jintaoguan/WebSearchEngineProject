@@ -12,6 +12,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Scanner;
+
 import index.IndexEntry;
 import index.DocFreqPair;
 
@@ -25,6 +26,11 @@ public class Query
 	private File wordOffsetFile;
 	private File indexFile;
 	
+	private Snippet snpt;
+	
+	private final int AVERAGE_PAGE_LENGTH = 30000;
+	
+	
 	public static void main( String[] argv )
 	{
 //		@SuppressWarnings("resource")
@@ -33,7 +39,10 @@ public class Query
 //		String query_str = scanner.nextLine();
 //		System.out.print( query_str );
 		Query query = new Query();
-		query.searchKeyWord();
+//		while( true )
+//		{
+			query.searchKeyWord();
+//		}
 	}
 	
 	public Query()
@@ -41,6 +50,8 @@ public class Query
 		this.keyWords = new ArrayList<String>(20);
 		this.indexLines = new ArrayList<String>(20);
 		this.docIDs = new LinkedList<Integer>();
+		
+		this.snpt = new Snippet();
 		
 		//input
 		@SuppressWarnings("resource")
@@ -56,6 +67,8 @@ public class Query
 		
 		//load the word offset file into main memory
 		this.loadWordOffset();
+		
+		
 	}
 	
 	public void searchKeyWord()
@@ -69,7 +82,9 @@ public class Query
 		this.docIDs = getAllDocIDs( entrys );
 		Date after = new Date();
 		System.out.println("used " + (after.getTime() - before.getTime()) + " miliseconds");
-		showDocID( this.docIDs );
+//		showDocID( this.docIDs );
+		System.out.println( "\nHave found " + this.docIDs.size() +" pages." );
+		this.snpt.outputSnippet( this.docIDs );
 	}
 	
 //	private ArrayList<String> setIndexLines()
@@ -218,6 +233,8 @@ public class Query
 				String indexLine = new String(fileLine);
 				this.indexLines.add( indexLine );
 //				System.out.println( "The length of the index:" + indexLine.length() );
+//				System.out.println( "The key word " + this.keyWords.get(i) + " index :{" + indexLine + "}" );
+				
 				
 			} catch (IOException e) {
 				e.printStackTrace();

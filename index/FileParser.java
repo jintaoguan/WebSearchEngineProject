@@ -11,8 +11,11 @@ import java.util.zip.GZIPInputStream;
 
 public class FileParser
 {
+	//data file to be processed
 	public File DataFile;
+	//index file to be processed
 	public File IndexFile;
+	
 	public int NumOfPages;
 	public int NumOfCurrentPage;
 	public String DataFileString;
@@ -20,31 +23,33 @@ public class FileParser
 	
 	private int m_lastDocID;
 	
-	private ArrayList<String> m_docIDList;
+	private ArrayList<PageInfo> m_docIDList;
 	public int CurrentOffset;
-	
 	
 	private static final int BUFFERSIZE = 20*1000*1000;
 	
 	private TreeMap<String, IndexEntry> fileMap;
 	
-	public FileParser( File data_file, File index_file, ArrayList<String> docIDList, int lastDocID )
+	public FileParser( File data_file, File index_file, ArrayList<PageInfo> docIDList, int lastDocID )
 	{
 		System.out.println( "Process Data File : " + data_file.getAbsolutePath() + " ..." );
 		System.out.println( "Process Index File : " + index_file.getAbsolutePath() + " ..." );
 		
 		this.DataFile = data_file;
 		this.IndexFile = index_file;
+		
 		this.NumOfCurrentPage = 0;
 		this.CurrentOffset = 0;
 		this.fileMap = new TreeMap<String, IndexEntry>();
 		
 		this.m_docIDList = docIDList;
+		
 		this.DataFileString = readGZFileToString(DataFile);
 		this.DataFileString = this.DataFileString.toLowerCase();
 		
 		String indexFileString = readGZFileToString(IndexFile);
 		this.IndexFileLines = indexFileString.split("\n");
+		
 		this.m_lastDocID = lastDocID;
 //		System.out.println( indexFileString );
 //		System.out.println( DataFileString.length() );
@@ -63,18 +68,20 @@ public class FileParser
 			
 			int endOffset = CurrentOffset + Integer.parseInt(strseg[3]);
 			String page_content = DataFileString.substring( CurrentOffset, endOffset );
-			CurrentOffset = endOffset;
+			
 			
 //			System.out.println( page_content );
 
-			PageParser pp = new PageParser( page_content, urlindex, m_docIDList );
+			PageParser pp = new PageParser( page_content, urlindex, CurrentOffset, DataFile, m_docIDList );
 			pageMap = pp.parse();
+			
+			CurrentOffset = endOffset;
 //			size = size + pageMap.size();
 //			System.out.println( pageMap.size());
 //			ToolKit.OutputMap(pageMap);
 			
 			//***************************************************
-			fileMap = ToolKit.mergeMap( fileMap, pageMap, m_lastDocID + m_docIDList.size() );
+			fileMap = ToolKit.mergeMap( fileMap, pageMap, m_lastDocID + m_docIDList.size(), urlindex );
 //			System.out.println( "Current Map Size : " + fileMap.size() );
 			
 			//***************************************************
@@ -97,7 +104,8 @@ public class FileParser
 			}
 			gin.close();
 		}
-		catch(Exception e){
+		catch(Exception e)
+		{
 			e.printStackTrace();
 		}
 		return sb.toString();

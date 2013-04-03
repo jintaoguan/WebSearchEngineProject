@@ -31,8 +31,10 @@ public class ToolKit
 	}
 	
 	//**************************************************************************************/
+	//merge the fileIndexMap with pageWordCountMap
+	
 	public static TreeMap<String,IndexEntry> mergeMap
-		( TreeMap<String,IndexEntry> m1, HashMap<String,Integer> m2, int docID )
+		( TreeMap<String,IndexEntry> m1, HashMap<String,Integer> m2, int docID, String urlindex )
 	{
 		Iterator<Entry<String, Integer>> iter = m2.entrySet().iterator(); 
 		while(iter.hasNext())
@@ -42,8 +44,17 @@ public class ToolKit
 			int value = (int) entry.getValue();
 			
 			DocFreqPair pair = new DocFreqPair();
+			if( (key.equals("chinese") || key.equals("korean")) && docID < 2000 )
+			{
+				System.out.println( "word is : " + key );
+				System.out.println( "docID is : " + docID );
+				System.out.println( "URL is : " + urlindex );
+				
+			}
+			
 			pair.setDocID(docID);
 //			pair.docID = docID;
+//			System.out.println( "frequency is : " + value );
 			pair.setFreq(value);
 //			pair.freq = value;
 			if( m1.containsKey(key) )
