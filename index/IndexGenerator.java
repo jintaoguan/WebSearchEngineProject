@@ -317,6 +317,8 @@ public class IndexGenerator
 		return sb.toString();
 	}
 	
+	
+	
 	//for test use
 	public int getNumOfDataFile()
 	{

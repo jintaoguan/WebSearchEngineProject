@@ -19,6 +19,7 @@ import java.util.zip.GZIPInputStream;
 public class Snippet
 {
 	private ArrayList<PageInfo> m_DocIDList;
+	
 	private File m_DocIDFile;
 	
 	private File m_targetFile;
@@ -70,30 +71,43 @@ public class Snippet
 	}
 	
 	//*************************************************************
-	public void outputSnippet( LinkedList<Integer> DocIDList )
+	public void outputSnippet( ArrayList<Integer> DocIDList, ArrayList<String> keywords )
 	{
-		for( int i = 0; i < 3; ++i )
+		for( int i = 0; i < 10; ++i )
 		{
 			int doc_id = DocIDList.get(i) - 1;
 			PageInfo info = this.m_DocIDList.get( doc_id );
 //			System.out.println( DocIDList.get(i) );
 //			System.out.println( info.getPageURL() );
 			
-			getPageSnippet( doc_id );
+			getPageSnippet( doc_id, keywords );
 		}
 	}
 	
 	//*************************************************************
-	private void getPageSnippet( int doc_id )
+	private void getPageSnippet( int doc_id, ArrayList<String> keywords )
 	{
 //		System.out.println("Get Page Snippet for Doc ID: " + doc_id );
 		PageInfo info = this.m_DocIDList.get( doc_id );
 //		System.out.println("Get Page Snippet for Doc ID: " + info.getPageURL() );
 		String page_content = getPageFromData( info );
+		String page_content_lowcase = page_content.toLowerCase();
+		int minpos = Integer.MAX_VALUE;
+		for( int i = 0; i < keywords.size(); ++i )
+		{
+			int pos = page_content_lowcase.indexOf( keywords.get(i) );
+			if( pos < minpos && pos != -1 ) minpos = pos;
+		}
+		int endpos = minpos + 600;
+		if( endpos >= page_content.length() )
+			endpos = page_content.length() - 1;
+		page_content = page_content.substring( minpos, endpos );
 		File snippet_file = new File("D:/Work/NZ_data/snippet/result.txt");
 		try {
 			FileWriter fw = new FileWriter( snippet_file, true );
+			fw.write("\n===========================================================================================\n");
 			fw.write( page_content );
+			fw.write("\n===========================================================================================\n");
 			fw.close();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -117,6 +131,7 @@ public class Snippet
 		return page_content;
 	}
 	
+	//
 	private void getFileByName( File thisFile, String filename )
 	{
 		if(!thisFile.isDirectory())
@@ -159,7 +174,8 @@ public class Snippet
 	public int getDocLengthByDocID( int doc_id )
 	{
 		PageInfo info = this.m_DocIDList.get( doc_id - 1 );
-		return Integer.parseInt( info.getPageLength() );
+//		return Integer.parseInt( info.getPageLength() );
+		return Integer.parseInt( info.getWordCount() );
 	}
 	
 	public String getURLByDocID( int doc_id )

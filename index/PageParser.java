@@ -40,7 +40,9 @@ public class PageParser
 		info.setPageOffset( this.m_CurrentOffset );
 		info.setFileID( this.m_DataFileID);
 		info.setPageLength( this.m_PageContent.length() );
-
+		int word_count = words.length;
+		info.setWordCount(word_count);
+		
 		m_docIDList.add(info);
 		return map;
 	}

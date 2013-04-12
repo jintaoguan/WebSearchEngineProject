@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Scanner;
@@ -21,11 +22,17 @@ import index.DocFreqPair;
 
 public class Query
 {
+	//key word
 	private ArrayList<String> keyWords;
-	private ArrayList<String> indexLines;
-	private LinkedList<Integer> docIDs;
+	
+	private ArrayList< ArrayList<Integer> > indexes;
+	private ArrayList<Integer> cursors;
+	
+	private ArrayList<Integer> docIDs;
 	
 	private PriorityQueue<HeapBM25Node> heap;
+	
+	private LinkedList<Double> bm25List;
 	
 	private String wordOffset;
 	private File wordOffsetFile;
@@ -35,33 +42,33 @@ public class Query
 	
 	private final int TOP_K_PAGE = 10;
 	
-	private final int AVERAGE_PAGE_LENGTH = 30000;
+	private final int AVERAGE_PAGE_LENGTH = 587;
 	private final int TOTAL_PAGE_NUM = 2635851;
 	
-	
+	private int max_id;
 	
 	public static void main( String[] argv )
 	{
-//		@SuppressWarnings("resource")
-//		Scanner scanner = new Scanner(System.in);
-//		System.out.println("Search: ");
-//		String query_str = scanner.nextLine();
-//		System.out.print( query_str );
 		Query query = new Query();
 		while( true )
 		{
 			query.inputKeyWords();
 			query.searchKeyWord();
+			query.clear();
 		}
 	}
 	
 	public Query()
 	{
 		this.keyWords = new ArrayList<String>(20);
-		this.indexLines = new ArrayList<String>(20);
-		this.docIDs = new LinkedList<Integer>();
+		this.docIDs = new ArrayList<Integer>();
+		this.bm25List = new LinkedList<Double>();
+		
+		this.indexes = new ArrayList<ArrayList<Integer>>();
+		this.cursors = new ArrayList<Integer>();
 		
 		this.snpt = new Snippet();
+		this.max_id = 0;
 		
 		wordOffsetFile = new File( "D:/Work/NZ_data/index/WordOffset.txt" );
 		indexFile = new File( "D:/Work/NZ_data/index/final_idx.txt" );
@@ -78,7 +85,11 @@ public class Query
 	private void clear()
 	{
 		this.keyWords.clear();
-		this.indexLines.clear();
+		this.indexes.clear();
+		this.docIDs.clear();
+		this.bm25List.clear();
+		this.cursors.clear();
+		this.max_id = 0;
 	}
 	
 	public void inputKeyWords()
@@ -94,45 +105,73 @@ public class Query
 	
 	public void searchKeyWord()
 	{
-		//get the key word index from index file
-		this.indexLines = getIndexLines();
-		
-//		this.indexLines = setIndexLines();
-		Date before = new Date();
-		QueryNode[] entrys = convertIndexLineToQueryNode();
-		this.docIDs = getAllDocIDs( entrys );
-
-		for( int i = 0; i < this.docIDs.size(); ++i )
+		for( int i = 0; i < this.keyWords.size(); ++i )
 		{
-			System.out.print( (i+1) + ": " + this.docIDs.get(i) + " " );
-			System.out.print( this.snpt.getURLByDocID( this.docIDs.get(i) ) + '\n' );
+			String keyword = keyWords.get(i);
+			keyword = '\n' + keyword + ' ';
+			int wordBeginPos = this.wordOffset.indexOf( keyword );
+			if( wordBeginPos == -1 )
+			{
+				System.out.println("No such key word.");
+				return;
+			}
+			wordBeginPos = wordBeginPos + 1; 
+			String offsetLine = getOffsetLine( wordBeginPos );
+			String[] segs = offsetLine.split("[ \n]");
+			long indexBeginPos = Long.parseLong( segs[1] );
+			int indexEndPos = Integer.parseInt( segs[2] );
 			
+			ArrayList<Integer> index = getIndex( indexBeginPos, indexEndPos );
+			this.indexes.add(index);
+		}
+		//the start time
+		Date before = new Date();
+		
+		this.docIDs = getAllDocIDs( this.indexes );
+
+//		for( int i = 0; i < this.docIDs.size(); ++i )
+		for( int i = this.docIDs.size() - 1; i >= 0; --i )
+		{
+			System.out.print( (this.docIDs.size() - i) + ": " + this.bm25List.get(i) + "                " );
+			System.out.print( this.snpt.getURLByDocID( this.docIDs.get(i) ) + '\n' );
 		}
 		
 		Date after = new Date();
 		System.out.println("used " + (after.getTime() - before.getTime()) + " miliseconds");
 //		showDocID( this.docIDs );
-		System.out.println( "\nHave found " + this.docIDs.size() +" pages." );
-		this.snpt.outputSnippet( this.docIDs );
-		this.snpt.clear();
+		
+		
+//		System.out.println( "\nShow " + this.docIDs.size() +" Snippets." );
+//		this.snpt.outputSnippet( this.docIDs, this.keyWords );
+//		this.snpt.clear();
 	}
+	
 	
 	//***************************************************************************
 	//                   the most important step of searching
 	//***************************************************************************
-	private LinkedList<Integer> getAllDocIDs( QueryNode[] entrys )
+	private ArrayList<Integer> getAllDocIDs( ArrayList<ArrayList<Integer>> indexes )
 	{
-		int cnt = 0;
-		while( entrys[0].hasNext() )
+		for( int i = 0; i < indexes.size(); ++i )
 		{
-			int doc_id = entrys[0].getCurDocID();
-			boolean has = haveCommonDocID( entrys, doc_id, 1, entrys.length  );
-			//get BM25 then it into heap  
+			System.out.println("the keyword " + this.keyWords.get(i) + " has " 
+					+ this.indexes.get(i).size()/2 + " pages");
+		}
+		int cnt = 0;
+		for( int i = 0; i < indexes.size(); ++i )
+			this.cursors.add(0);
+		ArrayList<Integer> list = indexes.get(0);
+		for( int i = 0; i < list.size(); i = i + 2 )
+		{
+			int doc_id = list.get(i);
+			if( doc_id < this.max_id ) continue;
+			boolean has = haveCommonDocID( doc_id, 1 );
+			
+			//get BM25 then push it into heap  
 			if( has == true )
 			{
 				cnt++;
-				double bm25_score = calculateBM25( entrys, doc_id ); 
-//				this.docIDs.add( entrys[0].getCurDocID() );
+				double bm25_score = calculateBM25( doc_id ); 
 				HeapBM25Node node = new HeapBM25Node( doc_id, bm25_score );
 				
 				if( this.heap.size() < TOP_K_PAGE )
@@ -143,68 +182,58 @@ public class Query
 					this.heap.add( node );
 				}
 			}
-			entrys[0].moveToNext();
 		}
 		while( !this.heap.isEmpty() )
 		{
-			int doc_id = this.heap.poll().getDocID();
-			this.docIDs.addLast(doc_id);
+			HeapBM25Node node = this.heap.poll();
+			int tmp_doc_id = node.getDocID();
+			double bm25 = node.getBM25();
+			Double obj = new Double( bm25);
+			this.bm25List.addLast( obj );
+			this.docIDs.add( tmp_doc_id );
 		}
 		System.out.println("Have found " + cnt + " Pages.");
 		return this.docIDs;
 	}
-	
-	//***************************************************************************
-	//                   calculate the bm25 score of this page
-	//***************************************************************************
-	private double calculateBM25( QueryNode[] entrys, int doc_id )
+	//search for the common docID using recursion
+	private boolean haveCommonDocID( int target_id, int depth )
 	{
-		double bm25 = 0.0;
-		
-		for( int i = 0; i < entrys.length; ++i )
+		if( depth >= this.indexes.size() )
+			return true;
+//		int doc_id = entrys[depth].getCurDocID();
+		int doc_id = getCurrentDocID(depth);
+		if( target_id == doc_id )
+			return haveCommonDocID( target_id, depth + 1 );
+		else if( target_id > doc_id )
 		{
-			double w = calculateW( entrys, doc_id, i );
-			double r = calculateR( entrys, doc_id, i );
-			bm25 += w * r;
-		}
-		return bm25;
-	}
-	private double calculateW( QueryNode[] entrys, int doc_id, int i )
-	{
-		double w = 0.0;
-		double tmp1 = ( this.TOTAL_PAGE_NUM - entrys[i].entry.doc_num + 0.5 );
-		double tmp2 = ( entrys[i].entry.doc_num + 0.5 );
-		w = Math.log10( tmp1 / tmp2 );
-		return w;
-	}
-	private double calculateR( QueryNode[] entrys, int doc_id, int i )
-	{
-		double k = calculateK( entrys, doc_id, i );
-		double tmp1 = entrys[i].getCurFreq() * ( 2.0 + 1.0 );
-		double tmp2 = entrys[i].getCurFreq() + k;
-		return ( tmp1 / tmp2 );
-	}
-	private double calculateK( QueryNode[] entrys, int doc_id, int i )
-	{
-		double ratio = ( this.snpt.getDocLengthByDocID(doc_id) / this.AVERAGE_PAGE_LENGTH );
-		double k = 2.0 * ( 1 - 0.75 + 0.75 * ratio );
-		return k;
-	}
-	
-	private void generateHeap(){
-		this.heap = new PriorityQueue<HeapBM25Node>( this.TOP_K_PAGE, new Comparator<HeapBM25Node>(){
-			//compare word alphabetic order and first docID
-			public int compare( HeapBM25Node a, HeapBM25Node b )
+			while( target_id > doc_id )
 			{
-				double bm25A = a.getBM25();
-				double bm25B = b.getBM25();
-				
-				if( bm25A > bm25B ) return 1;
-				else return -1;				
+//				if( entrys[depth].hasNext() )
+				if( this.cursors.get(depth) < this.indexes.get(depth).size() - 2 )
+					this.cursors.set( depth, this.cursors.get(depth) + 2 );
+				else 
+					return false;
+//				doc_id = entrys[depth].getCurDocID();
+//				int cursor_pos = this.cursors.get(depth);
+//				doc_id = this.indexes.get(depth).get(cursor_pos);
+				doc_id = getCurrentDocID(depth);
 			}
-		});
+			if( doc_id == target_id )
+				return haveCommonDocID( target_id, depth + 1 );
+			else
+			{
+				this.max_id = doc_id;
+				return false;
+			}
+		}else{
+			return false;
+		}
 	}
-	
+	private int getCurrentDocID( int depth )
+	{
+		int cursor_pos = this.cursors.get(depth);
+		return this.indexes.get(depth).get(cursor_pos);
+	}
 	//search for the common docID using recursion
 	private boolean haveCommonDocID( QueryNode[] entrys, int target_id, int depth, int num )
 	{
@@ -231,39 +260,120 @@ public class Query
 			return false;
 		}
 	}
-	
-	private QueryNode[] convertIndexLineToQueryNode()
+	//***************************************************************************
+	//                   calculate the bm25 score of this page
+	//***************************************************************************
+	private double calculateBM25( int doc_id )
 	{
-		QueryNode[] entrys = new QueryNode[this.keyWords.size()];
-		for( int i = 0; i < entrys.length; ++i )
-			entrys[i] = convertLineToQueryNode( indexLines.get(i) );
-		return entrys;
+		double bm25 = 0.0;
+		
+		for( int i = 0; i < this.indexes.size(); ++i )
+		{
+			double w = calculateW( doc_id, i );
+			double r = calculateR( doc_id, i );
+			bm25 += w * r;
+		}
+		return bm25;
+	}
+	private double calculateW( int doc_id, int i )
+	{
+		double w = 0.0;
+		double tmp1 = ( this.TOTAL_PAGE_NUM - this.indexes.get(i).size() / 2 + 0.5 );
+		double tmp2 = ( this.indexes.get(i).size() + 0.5 );
+		w = Math.log10( tmp1 / tmp2 );
+		return w;
+	}
+	private double calculateR( int doc_id, int i )
+	{
+		double k = calculateK( doc_id );
+//		double tmp1 = entrys[i].getCurFreq() * ( 2.0 + 1.0 );
+//		double tmp1 = entrys[i].getCurFreq() + k;
+		
+		int pos = this.cursors.get(i);
+		double tmp1 = this.indexes.get(i).get( pos + 1 ) * ( 2.0 + 1.0 );
+		double tmp2 = this.indexes.get(i).get( pos + 1 ) + k;
+		return ( tmp1 / tmp2 );
+	}
+	private double calculateK( int doc_id )
+	{
+		double ratio = ( this.snpt.getDocLengthByDocID(doc_id) / this.AVERAGE_PAGE_LENGTH );
+		double k = 2.0 * ( 1 - 0.75 + 0.75 * ratio );
+		return k;
+	}
+	//***************************************************************************
+	//						get bytes from index file
+	//***************************************************************************
+	private ArrayList<Integer> getIndex( long beginPos, int length )
+	{
+		ArrayList<Integer> result = null;
+		FileInputStream fis = null;
+		byte[] fileLine = new byte[length];
+		try {
+			fis = new FileInputStream( this.indexFile );
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			System.out.println("Index File not found.");
+		}
+		BufferedInputStream bis = new BufferedInputStream(fis);
+		try {
+			bis.skip( beginPos );
+			bis.read( fileLine, 0, length );
+			
+			result = getIntFromBytes( fileLine );
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.out.println("Read Index Line Error.");
+		}
+		return result;
 	}
 	
-	//convert a line of index to an IndexEntry object
-	private QueryNode convertLineToQueryNode( String indexLine )
+	//***************************************************************************
+	//                   decode the bytes to integer
+	//***************************************************************************
+	public static ArrayList<Integer> getIntFromBytes( byte[] line )
 	{
-//		System.out.println( indexLine );
-//		QueryNode node = new QueryNode();
-		IndexEntry entry = new IndexEntry();
-		String[] segs = indexLine.split(" ");
-		entry.doc_num = Integer.parseInt( segs[1] );
-//		entry.doc_num = Integer.parseInt( segs[1] );
-		for( int i = 2; i < segs.length - 1; i = i + 2 )
+		ArrayList<Integer> arr = new ArrayList<Integer>();
+		int pos = 0;
+		while( pos < line.length )
 		{
-			DocFreqPair pair = new DocFreqPair( segs[i], segs[i+1] );
-			entry.indexList.add(pair);
+			int result = 0;
+			while((line[pos] & 0x80) == 0x80){
+				result = result * 128 + (line[pos++] & 0x7F);
+			}
+			result = result * 128 + (line[pos++] & 0x7F);
+			arr.add(result);
 		}
-		QueryNode node = new QueryNode( entry );
-		return node;
+		return arr;
+	}
+	
+	
+	
+	private void generateHeap(){
+		this.heap = new PriorityQueue<HeapBM25Node>( this.TOP_K_PAGE, new Comparator<HeapBM25Node>(){
+			//compare word alphabetic order and first docID
+			public int compare( HeapBM25Node a, HeapBM25Node b )
+			{
+				double bm25A = a.getBM25();
+				double bm25B = b.getBM25();
+				
+				if( bm25A > bm25B ) return 1;
+				else return -1;				
+			}
+		});
 	}
 	
 	private ArrayList<String> getKeyWordsFromQuery( String query_str )
 	{
 		query_str = query_str.toLowerCase();
 		String[] words = query_str.split(" ");
+		HashSet<String> set = new HashSet<String>();
 		for( int i = 0; i < words.length; ++i )
-			this.keyWords.add( words[i] );
+		{
+			if( !set.contains(words[i]) )
+				set.add(words[i]);
+		}
+		this.keyWords.addAll(set);
 		return this.keyWords;
 	}
 	
@@ -293,49 +403,6 @@ public class Query
 		}
 	}
 	
-	private ArrayList<String> getIndexLines()
-	{
-		for( int i = 0; i < this.keyWords.size(); ++i )
-		{
-			String keyword = keyWords.get(i);
-			keyword = '\n' + keyword + ' ';
-//			System.out.println(keyword);
-			int wordBeginPos = this.wordOffset.indexOf( keyword ) + 1;
-			
-			String offsetLine = getOffsetLine( wordBeginPos );
-//			System.out.println(offsetLine);
-			
-			//get the word offset in index file
-			long wordOffset = getWordOffsetInIndex( offsetLine );
-			//get the index length of the word in index file
-			int wordIndexLen = getWordIndexLenInIndex( offsetLine );
-			
-			//read line index of certain word from index file
-			FileInputStream fis = null;
-			byte[] fileLine = new byte[wordIndexLen];
-			try {
-				fis = new FileInputStream( this.indexFile );
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-				System.out.println("Index File not found.");
-			}
-			BufferedInputStream bis = new BufferedInputStream(fis);
-			try {
-				bis.skip( wordOffset );
-				bis.read( fileLine, 0, wordIndexLen );
-				String indexLine = new String(fileLine);
-				this.indexLines.add( indexLine );
-//				System.out.println( "The length of the index:" + indexLine.length() );
-//				System.out.println( "The key word " + this.keyWords.get(i) + " index :{" + indexLine + "}" );
-				
-				
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.out.println("Read Index Line Error.");
-			}
-		}
-		return this.indexLines;
-	}
 
 	private String getOffsetLine( int wordBeginPos )
 	{
@@ -351,28 +418,7 @@ public class Query
 		return sb.toString(); 
 	}
 	
-	private long getWordOffsetInIndex( String offsetLine )
-	{
-		long wordoffset = 0;
-		String[] offsetSegs = offsetLine.split(" ");
-//		System.out.println( offsetSegs[1] );
-		
-		//convert offsetSegs[1] to long
-		wordoffset = Long.parseLong(offsetSegs[1]);
-		return wordoffset;
-	}
-	private int getWordIndexLenInIndex( String offsetLine )
-	{
-		int indexLen = 0;
-		String[] offsetSegs = offsetLine.split("[ \n]");
-//		System.out.println( offsetSegs[2] );
-		
-		//convert offsetSegs[2] to int
-		indexLen = Integer.parseInt( offsetSegs[2] );
-		return indexLen;
-	}
-	
-	//for test use
+	//for test used
 	private void showDocID( LinkedList<Integer> docIDs )
 	{
 		Iterator<Integer> iter = docIDs.iterator();

@@ -44,13 +44,13 @@ public class ToolKit
 			int value = (int) entry.getValue();
 			
 			DocFreqPair pair = new DocFreqPair();
-			if( (key.equals("chinese") || key.equals("korean")) && docID < 2000 )
-			{
-				System.out.println( "word is : " + key );
-				System.out.println( "docID is : " + docID );
-				System.out.println( "URL is : " + urlindex );
-				
-			}
+//			if( (key.equals("chinese") || key.equals("korean")) && docID < 2000 )
+//			{
+//				System.out.println( "word is : " + key );
+//				System.out.println( "docID is : " + docID );
+//				System.out.println( "URL is : " + urlindex );
+//				
+//			}
 			
 			pair.setDocID(docID);
 //			pair.docID = docID;
